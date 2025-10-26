@@ -1,6 +1,6 @@
 # Week 14 — Inventory service (one microservice)
 
-tools-introduced: Inventory service (Go/chi)
+tools-introduced: Inventory service (Go/net/http)
 
 concepts-covered:
 

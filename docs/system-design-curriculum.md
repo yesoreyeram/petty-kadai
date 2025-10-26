@@ -31,12 +31,18 @@ By completing this program you will be able to:
 - Each module includes: Concepts, Build, Deliverables, Acceptance Criteria, Stretch.
 - Default stack (feel free to swap equivalents):
 
-  - Language: TypeScript/Node (Express/Fastify) or Go (chi/fiber) or Java (Spring Boot). Pick ONE.
+  - Language: TypeScript/Node (Express/Fastify) or Go (net/http) or Java (Spring Boot). Pick ONE.
   - Data: Postgres (Users/Orders/Payments), MongoDB (Catalog), Redis (cache/locks), Elasticsearch/OpenSearch (Search), MinIO (S3-compatible object storage), Kafka or RabbitMQ (events), ClickHouse or DuckDB (analytics warehouse, local-friendly).
   - Infra: Docker Compose (weeks 1–7), then Kubernetes with Kind/Minikube (weeks 8+). CDN conceptually via Cloudflare; locally simulate with Nginx cache.
   - Observability: OpenTelemetry, Prometheus, Grafana, Loki, Jaeger/Tempo.
   - Auth: JWT via an auth service (Keycloak optional).
   - Testing/Load: k6, hey, Locust.
+
+  ## Reference artifacts
+
+  - Enterprise functional requirements: `docs/requirements/functional-enterprise.md`
+  - Enterprise non-functional requirements: `docs/requirements/non-functional-enterprise.md`
+  - Enterprise security requirements: `docs/requirements/security-enterprise.md`
 
 ## Capstone system overview (Mini Amazon)
 
@@ -72,29 +78,29 @@ Key patterns from the transcript you’ll implement:
 
 ## Weekly plan (16 weeks)
 
-### Week 1 — Foundations and scope
+### Week 1 — Foundations and single service (one tool)
 
 - Concepts: Functional vs non-functional requirements; latency SLO (<200ms), availability targets (99.9 vs 99.99), capacity planning lite.
-- Build: Repo setup; Docker Compose baseline; pick language. Create empty services with health endpoints; bootstrap Postgres, Mongo, Redis, Kafka/RabbitMQ, MinIO.
-- Deliverables: Architecture doc v0 (C4 Context + Container), service contracts draft.
-- Acceptance: `GET /health` green for all services; Compose `up` succeeds.
-- Stretch: Golden signals dashboard (requests, latency, errors per service) in Grafana.
+- Build: Pick language (Go) and create a single User service with `GET /health` only. No databases, gateway, broker, or object storage yet. Local run via `go run` (optional: a tiny Compose with just this service).
+- Deliverables: Architecture doc v0 (C4 Context + Container) focused on a single service; service conventions; Makefile.
+- Acceptance: `GET /health` returns 200 in <50ms locally; graceful shutdown works; unit test for health endpoint passes.
+- Stretch: Add simple structured logging and readiness/liveness endpoints.
 
-### Week 2 — API gateway and auth (JWT)
+### Week 2 — Catalog API (MongoDB) (one tool)
 
-- Concepts: Edge concerns, rate limiting, authN/Z, stateless JWT vs server sessions per transcript guidance.
-- Build: Nginx or Envoy as API gateway; issue JWTs in User Service; gateway validates JWT and enforces rate limits.
-- Deliverables: Sequence diagram for login flow; Postman collection.
-- Acceptance: Protected endpoints require JWT; 429s under configured rate.
-- Stretch: Key rotation (JWKS), refresh tokens.
+- Concepts: Flexible product schema; validation; pagination.
+- Build: Catalog service with CRUD backed by MongoDB; no images/CDN yet.
+- Deliverables: Product schema; handler + repository tests; basic integration test.
+- Acceptance: Create/list/update products; pagination works; tests pass.
+- Stretch: Category facets; simple price filter.
 
-### Week 3 — Catalog (NoSQL) + Object storage + CDN
+### Week 3 — Frontend (Next.js) (one tool)
 
-- Concepts: Flexible product schema; object storage for media; CDN caching.
-- Build: Catalog API on Mongo; upload images to MinIO; serve via Nginx cache.
-- Deliverables: Product schema examples by category; upload + view image flow.
-- Acceptance: Create/list products; images load via cached route.
-- Stretch: Signed URLs; variants (size/color) schema.
+- Concepts: SSR/ISR page; backend API calls; .env handling.
+- Build: Next.js app with a Products page listing items from Catalog API.
+- Deliverables: Basic UI and an e2e/integration test for the products page.
+- Acceptance: Visiting `/products` shows catalog items; test passes.
+- Stretch: Simple product detail page.
 
 ### Week 4 — Search service and indexing pipeline
 
@@ -104,13 +110,13 @@ Key patterns from the transcript you’ll implement:
 - Acceptance: New/updated product searchable within SLA.
 - Stretch: Typo tolerance, synonyms.
 
-### Week 5 — Cart service + Session strategy
+### Week 5 — Inventory service (naive) (one concept)
 
-- Concepts: Cart semantics; idempotent add/remove; caching hot reads.
-- Build: Cart service (Redis or Postgres); idempotency keys for updates; TTL for anonymous carts.
-- Deliverables: Cart API; race tests.
-- Acceptance: Consistent totals under concurrent adds/removes.
-- Stretch: Merge guest cart on login.
+- Concepts: Stock per SKU/variant; sequential safety with mutexes; no external locks yet.
+- Build: Inventory service with in-memory or simple store; reserve/decrement endpoints.
+- Deliverables: API + concurrency tests demonstrating basic correctness.
+- Acceptance: Under small concurrency, reserves/decrements are correct; tests pass.
+- Stretch: Persist to a lightweight store (file/SQLite) without introducing new infra.
 
 ### Week 6 — Inventory service with distributed locks
 
@@ -160,12 +166,12 @@ Key patterns from the transcript you’ll implement:
 - Acceptance: Reads routed to replica; write path unaffected; correctness tests pass.
 - Stretch: Auto-shard rebalancing plan (design only).
 
-### Week 12 — Security hardening
+### Week 12 — Security hardening (introduce API gateway + JWT)
 
 - Concepts: TLS everywhere, OWASP Top 10, secrets management, JWT scopes/roles, rate limiting/WAF, PCI scope minimization via tokenization.
-- Build: mTLS between services (local via mkcert); secret storage; input validation; audit logging.
+- Build: Introduce API Gateway (Nginx/Envoy) and enable JWT validation at the edge; mTLS between services (dev via mkcert); secret storage; input validation; audit logging.
 - Deliverables: Threat model (STRIDE-lite); pentest checklist.
-- Acceptance: Security tests (basic) pass; sensitive logs redacted.
+- Acceptance: Protected endpoints require valid JWT at the gateway; security tests pass; sensitive logs redacted.
 - Stretch: OPA/ABAC for fine-grained auth.
 
 ### Week 13 — Deployments: Kubernetes
@@ -212,11 +218,11 @@ At the end of each week, the stack must start and be demoable with a repeatable 
 
 Weeks 1–16 (core program):
 
-- Week 1 Runnable: `docker compose up` starts infra and skeleton services; `/health` endpoints green. Tests: service health checks; compose smoke test.
-- Week 2 Runnable: Gateway enforces JWT and rate limits; login flow works. Tests: auth unit tests (JWT issuance/validation), gateway integration tests for 401/429.
-- Week 3 Runnable: Catalog CRUD and image upload via MinIO and cached fetch via Nginx. Tests: catalog model validation; upload/download integration; CDN cache hit behavior.
+- Week 1 Runnable: run the single service locally (`go run` or `docker compose up` with only the User service) and `GET /health` returns 200. Tests: health handler unit test.
+- Week 2 Runnable: Catalog CRUD working against Mongo; unit + basic integration tests pass. Tests: model validation; repository/handler tests; pagination checks.
+- Week 3 Runnable: Frontend lists products from Catalog. Tests: page renders list via API; simple e2e/integration test.
 - Week 4 Runnable: Search service indexes `product-updated` and serves queries. Tests: indexing pipeline end-to-end; freshness SLI check (<5s) with polling test.
-- Week 5 Runnable: Cart API supports idempotent add/remove with consistent totals. Tests: race tests for concurrent updates; idempotency key behavior.
+- Week 5 Runnable: Inventory service (naive) handles reserve/decrement correctly under small concurrency. Tests: race tests verifying correctness.
 - Week 6 Runnable: Inventory reserve endpoint with Redis lock guarantees ≤1 success on last item. Tests: contention test (10 buyers/1 item); lock TTL and retry backoff.
 - Week 7 Runnable: Order + Payment Saga executes; compensation works on failure. Tests: state machine transitions; outbox emission; refund/cancel compensation paths.
 - Week 8 Runnable: Traces span gateway→services; metrics/logs visible in Grafana/Loki; alerts configured. Tests: tracing propagation test; metrics presence; alerting rule unit tests.
@@ -238,8 +244,8 @@ Extension weeks (17–20) — optional but recommended:
 
 ## Milestones and acceptance criteria (summary)
 
-1. Foundations (Wk1–3): Services boot, auth works, catalog/search functional
-2. Transactional core (Wk5–7): Carts, inventory lock correctness, order/payment Saga
+1. Foundations (Wk1–3): Single service boot, catalog and frontend functional; search added in Wk4
+2. Transactional core (Wk5–7): Inventory (naive + locks), order/payment Saga
 3. Operability (Wk8–10): Observability, reliability, performance targets met
 4. Scale/readiness (Wk11–13): Sharding plan, security hardening, Kubernetes deploys
 5. Data/DR (Wk14–16): Batch/Workflows, Analytics pipeline, DR drill

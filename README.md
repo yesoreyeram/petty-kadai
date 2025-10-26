@@ -7,6 +7,7 @@ Quick links:
 - Curriculum: `docs/system-design-curriculum.md`
 - Weekly modules: `docs/weeks/`
 - Architecture overview: `docs/architecture/README.md`
+- Enterprise requirements: functional, non-functional, and security specs in `docs/requirements/`
 
 ## What we’re building
 
@@ -102,7 +103,7 @@ flowchart LR
 ## Tech stack
 
 - Frontend: Next.js
-- Backend: Go (chi) services
+- Backend: Go (net/http) services
 - Data: Postgres (users/orders/payments), MongoDB (catalog), Redis (cache/locks), Elasticsearch (search), MinIO/S3 (images)
 - Messaging: RabbitMQ or Kafka
 - Edge: Nginx (API gateway, simple CDN-like cache)

@@ -1,6 +1,6 @@
 # Week 12 — Cart service (in-memory) (one microservice)
 
-tools-introduced: Cart service (Go/chi), in-memory
+tools-introduced: Cart service (Go/net/http), in-memory
 
 concepts-covered:
 

@@ -1,6 +1,6 @@
 # Week 16 — Order service + Saga orchestration (one microservice/concept)
 
-tools-introduced: Order service (Go/chi), saga orchestrator (design only)
+tools-introduced: Order service (Go/net/http), saga orchestrator (design only)
 
 concepts-covered:
 

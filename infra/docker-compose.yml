@@ -1,0 +1,14 @@
+version: "3.9"
+
+name: petty-kadai
+
+services:
+  # Week 1: single service only (no external infra yet)
+  user-svc:
+    build:
+      context: ../services/user
+    environment:
+      PORT: "8081"
+      SERVICE_NAME: user
+    ports:
+      - "8081:8081"

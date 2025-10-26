@@ -1,6 +1,6 @@
 # Week 10 — Search service (skeleton) (one microservice)
 
-tools-introduced: Search service (Go/chi), no ES yet
+tools-introduced: Search service (Go/net/http), no ES yet
 
 concepts-covered:
 

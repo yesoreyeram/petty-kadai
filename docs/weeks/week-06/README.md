@@ -1,6 +1,6 @@
 # Week 06 — Catalog service (in-memory) (one microservice)
 
-tools-introduced: Catalog service (Go/chi), no DB yet
+tools-introduced: Catalog service (Go/net/http), no DB yet
 
 concepts-covered:
 

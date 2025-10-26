@@ -1,30 +1,29 @@
-# Week 02 — API Gateway (one tool)
+# Week 02 — Catalog API (one tool)
 
-tools-introduced: Nginx (API gateway/edge)
+tools-introduced: MongoDB (document store)
 
 concepts-covered:
 
-- Edge concerns: routing, request/response normalization
-- Rate limiting basics (token bucket) — configure but keep limits permissive
+- Flexible product schema; simple CRUD; validation; pagination
 
 proposed-architecture:
 
-- Add Nginx in front of the User service; still no auth or DB
+- Add Catalog service exposing CRUD for products backed by MongoDB
 
 changes-to-system-design:
 
-- Introduce gateway layer; standardize headers and error format
+- Define product schema (category, title, price, images[]); validation rules
 
 tasks-checklist:
 
-- [ ] Add Nginx container in dev
-- [ ] Define routes: `/api/user/health` → User service
-- [ ] Add basic rate limiting and 429 response
-- [ ] Add request ID header propagation
+- [ ] Add MongoDB in dev (Compose) and wire DSN via env
+- [ ] Implement Catalog API: create, get, list (with pagination), update
+- [ ] Basic validation and error handling (400s for invalid payloads)
+- [ ] Unit tests for handlers and repository; integration test against Mongo (dev container)
 
 skills-required:
 
-- Nginx basics, reverse proxy configuration
+- Go handlers; Mongo driver basics; JSON validation
 
 prerequisites:
 
@@ -32,18 +31,18 @@ prerequisites:
 
 deliverables:
 
-- Gateway routes working; 429 observed under aggressive local limit
+- Catalog CRUD working locally with tests
 
 acceptance-criteria:
 
-- `GET /api/user/health` through Nginx returns 200; rate limiter blocks > N RPS
+- Create/list products succeeds; list paginates; tests pass (unit + basic integration)
 
 ## Proposed architecture diagram
 
 ```mermaid
 flowchart LR
-  UI[Next.js Web /future]
-  GW[Nginx API Gateway]
-  USER[User Service]
-  UI -->|HTTP| GW --> USER
+  CLIENT[Dev client curl/Postman]
+  CATALOG[Catalog Service]
+  MONGO[(MongoDB)]
+  CLIENT -->|HTTP /api/catalog| CATALOG --> MONGO
 ```
