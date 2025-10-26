@@ -1,0 +1,309 @@
+# System Design Architect Learning Path
+
+Capstone: Build a Small-Scale Shopping Portal ("Mini Amazon") while mastering distributed systems, microservices, reliability, availability, security, performance, observability, analytics, networking, deployments, queues, workflows, batch processing, containers, and Kubernetes.
+
+This curriculum uses the attached transcript “Designing a Scalable and Global E-commerce Platform System” as thematic guidance. We’ll implement production-grade patterns—at small scale—so you truly learn by doing.
+
+## Who this is for
+
+- Engineers who know one backend language (Node/TS, Go, Java, or Python)
+- Comfortable with Git, basic HTTP, REST/JSON, Docker
+- Optional but helpful: SQL basics
+
+## Learning outcomes
+
+By completing this program you will be able to:
+
+- Design microservice architectures with clear service boundaries, APIs, and data ownership
+- Choose data stores by workload (relational for orders/payments, document for catalog, cache for speed, search for discovery)
+- Apply CAP trade-offs, strong vs eventual consistency, and the Saga pattern
+- Build event-driven systems with queues/streams and idempotent consumers
+- Implement distributed locks (e.g., Redis SET NX + TTL) for hot-path correctness (inventory)
+- Design for availability (rate limiting, backpressure, retries, circuit breakers), scalability (sharding, replicas, CDN, caches), and disaster recovery (RTO/RPO)
+- Secure systems (JWT, TLS, OWASP Top 10, PCI-scope minimization via tokenization)
+- Operate systems (metrics, logs, traces, dashboards, SLOs, on-call runbooks)
+- Deploy to Kubernetes; manage releases with blue/green or canary
+- Build an analytics pipeline isolated from OLTP
+
+## How to use this curriculum
+
+- Format: 16 weeks (flex to 12/20). ~6–8 hrs/week split between theory (30%) and hands-on (70%).
+- Each module includes: Concepts, Build, Deliverables, Acceptance Criteria, Stretch.
+- Default stack (feel free to swap equivalents):
+
+  - Language: TypeScript/Node (Express/Fastify) or Go (chi/fiber) or Java (Spring Boot). Pick ONE.
+  - Data: Postgres (Users/Orders/Payments), MongoDB (Catalog), Redis (cache/locks), Elasticsearch/OpenSearch (Search), MinIO (S3-compatible object storage), Kafka or RabbitMQ (events), ClickHouse or DuckDB (analytics warehouse, local-friendly).
+  - Infra: Docker Compose (weeks 1–7), then Kubernetes with Kind/Minikube (weeks 8+). CDN conceptually via Cloudflare; locally simulate with Nginx cache.
+  - Observability: OpenTelemetry, Prometheus, Grafana, Loki, Jaeger/Tempo.
+  - Auth: JWT via an auth service (Keycloak optional).
+  - Testing/Load: k6, hey, Locust.
+
+## Capstone system overview (Mini Amazon)
+
+Services (first-class):
+
+- API Gateway/Edge: routing, rate limits
+- User Service: accounts, JWT issuance
+- Catalog Service: products (NoSQL), images in object storage
+- Search Service: Elasticsearch indexer + query API
+- Cart Service: per-user carts
+- Inventory Service: stock per SKU/variant, Redis lock on reserve
+- Order Service: create order, orchestrate Saga
+- Payment Adapter: talks to “fake gateway” to tokenize and authorize (no raw card data in our system)
+- Notification Service: email/Webhook (local: console or Mailhog)
+
+Shared infra:
+
+- Kafka/RabbitMQ topics: product-updated, order-placed, order-paid, inventory-reserved, payment-failed, etc.
+- Databases: Postgres (users, orders, payments); Mongo (products); Redis (locks/cache);
+- Object storage: MinIO for product images; CDN simulated by Nginx cache
+- Observability: OTel SDKs + collectors → Prometheus, Grafana, Loki, Jaeger
+- Analytics: ELT from OLTP/outbox → Kafka → ClickHouse/DuckDB
+
+Key patterns from the transcript you’ll implement:
+
+- API Gateway with rate limiting; JWT stateless auth
+- Event-driven choreography; decoupled services via topics/queues
+- Inventory correctness using Redis SET NX + TTL locks
+- Saga for order → payment → inventory with compensation
+- Separate search index; near-real-time updates via product-updated events
+- DR thinking with RTO/RPO targets; multi-AZ/region simulation locally
+- Observability pillars: metrics, logs, tracing; business KPIs (conversion, failure rate)
+
+## Weekly plan (16 weeks)
+
+### Week 1 — Foundations and scope
+
+- Concepts: Functional vs non-functional requirements; latency SLO (<200ms), availability targets (99.9 vs 99.99), capacity planning lite.
+- Build: Repo setup; Docker Compose baseline; pick language. Create empty services with health endpoints; bootstrap Postgres, Mongo, Redis, Kafka/RabbitMQ, MinIO.
+- Deliverables: Architecture doc v0 (C4 Context + Container), service contracts draft.
+- Acceptance: `GET /health` green for all services; Compose `up` succeeds.
+- Stretch: Golden signals dashboard (requests, latency, errors per service) in Grafana.
+
+### Week 2 — API gateway and auth (JWT)
+
+- Concepts: Edge concerns, rate limiting, authN/Z, stateless JWT vs server sessions per transcript guidance.
+- Build: Nginx or Envoy as API gateway; issue JWTs in User Service; gateway validates JWT and enforces rate limits.
+- Deliverables: Sequence diagram for login flow; Postman collection.
+- Acceptance: Protected endpoints require JWT; 429s under configured rate.
+- Stretch: Key rotation (JWKS), refresh tokens.
+
+### Week 3 — Catalog (NoSQL) + Object storage + CDN
+
+- Concepts: Flexible product schema; object storage for media; CDN caching.
+- Build: Catalog API on Mongo; upload images to MinIO; serve via Nginx cache.
+- Deliverables: Product schema examples by category; upload + view image flow.
+- Acceptance: Create/list products; images load via cached route.
+- Stretch: Signed URLs; variants (size/color) schema.
+
+### Week 4 — Search service and indexing pipeline
+
+- Concepts: Dedicated search (Elasticsearch), event-driven indexing, eventual consistency acceptable for search.
+- Build: product-updated event; indexer consumes and updates ES; search API with facets and autocomplete.
+- Deliverables: Index mapping; freshness SLI (<5s lag).
+- Acceptance: New/updated product searchable within SLA.
+- Stretch: Typo tolerance, synonyms.
+
+### Week 5 — Cart service + Session strategy
+
+- Concepts: Cart semantics; idempotent add/remove; caching hot reads.
+- Build: Cart service (Redis or Postgres); idempotency keys for updates; TTL for anonymous carts.
+- Deliverables: Cart API; race tests.
+- Acceptance: Consistent totals under concurrent adds/removes.
+- Stretch: Merge guest cart on login.
+
+### Week 6 — Inventory service with distributed locks
+
+- Concepts: Hotspot control; Redis SET NX + TTL; correctness over throughput for critical section.
+- Build: Reserve stock endpoint acquires lock by SKU (or SKU+variant), re-reads stock, decrements, releases.
+- Deliverables: Lock design notes (key, TTL, retry/backoff); failure modes.
+- Acceptance: Last-item race test (10 concurrent buyers → ≤1 success).
+- Stretch: Token bucket for “flash sale” gate before reaching inventory.
+
+### Week 7 — Orders + Payments with Saga
+
+- Concepts: Strong consistency for orders/payments; saga orchestration vs choreography; compensation.
+- Build: Order service orchestrates steps: create order (pending) → call Payment Adapter (tokenized) → on success publish order-placed → Inventory reserves; on failure emit compensation (refund/cancel order).
+- Deliverables: State machine; outbox pattern for reliability.
+- Acceptance: Fault injection proves compensations work; no “stuck” partial orders.
+- Stretch: Dead-letter queue handling and reprocessing tools.
+
+### Week 8 — Observability deep dive
+
+- Concepts: Metrics, logs, traces; exemplars; RED and USE methods; tracing across services.
+- Build: OpenTelemetry SDKs; exporters to Collector → Prometheus, Loki, Jaeger; dashboards and alerts.
+- Deliverables: Service dashboards; trace showing checkout path.
+- Acceptance: Trace includes gateway → user → cart → order → payment → inventory; alert on 5xx >1%/5m.
+- Stretch: Business KPIs dashboard (orders/min, auth failures, cart abandonment).
+
+### Week 9 — Reliability: backpressure and resiliency patterns
+
+- Concepts: Retries with jitter, timeouts, circuit breakers, bulkheads; queue depth alarms.
+- Build: Circuit breaker in gateway for unstable downstream; consumer concurrency tuning; poison message handling.
+- Deliverables: Runbook for “payment gateway slow/failing”.
+- Acceptance: Under injected latency, system degrades gracefully; alerts fire with clear action.
+- Stretch: Chaos experiments (kill a service; observe failover paths).
+
+### Week 10 — Performance engineering
+
+- Concepts: Caching layers (client/CDN/gateway/service/data), n+1 avoidance, connection pooling.
+- Build: k6/hey scenarios: browse → search → add to cart → checkout; profile p95.
+- Deliverables: Perf test scripts; optimization change log.
+- Acceptance: p95 < 200ms for browse/search/cart at 50–100 RPS local; CPU<70%.
+- Stretch: Read replicas for Postgres; cache aside pattern for catalog hot items.
+
+### Week 11 — Data modeling, sharding, and replicas
+
+- Concepts: Sharding keys (user_id/order_id), hot shard detection, read replicas; CAP trade-offs.
+- Build: Simulate user_id-based partitioning (schema or app-level routing); add a read replica (logical) for reads.
+- Deliverables: Partitioning plan; hot-shard mitigation notes.
+- Acceptance: Reads routed to replica; write path unaffected; correctness tests pass.
+- Stretch: Auto-shard rebalancing plan (design only).
+
+### Week 12 — Security hardening
+
+- Concepts: TLS everywhere, OWASP Top 10, secrets management, JWT scopes/roles, rate limiting/WAF, PCI scope minimization via tokenization.
+- Build: mTLS between services (local via mkcert); secret storage; input validation; audit logging.
+- Deliverables: Threat model (STRIDE-lite); pentest checklist.
+- Acceptance: Security tests (basic) pass; sensitive logs redacted.
+- Stretch: OPA/ABAC for fine-grained auth.
+
+### Week 13 — Deployments: Kubernetes
+
+- Concepts: Pods, Services, Ingress, HPA, Requests/Limits, readiness/liveness, blue/green vs canary.
+- Build: Port Compose stack to Kind/Minikube; Helm or Kustomize; HPA on CPU/RPS.
+- Deliverables: Manifests/Charts; rollout procedure doc.
+- Acceptance: Zero-downtime rollout of catalog service; auto-scale under load.
+- Stretch: Service mesh (Linkerd/Istio) for mTLS and traffic shifting.
+
+### Week 14 — Batch processing and workflows
+
+- Concepts: Cron jobs, retries, idempotency; workflow engines (Temporal/Argo Workflows) vs DIY.
+- Build: Nightly price sync batch; weekly cleanup job; optional: workflow engine to orchestrate ETL.
+- Deliverables: Playbooks; backfill process.
+- Acceptance: Batch runs idempotently; re-runnable without duplicates.
+- Stretch: Scheduled inventory reconciliation report.
+
+### Week 15 — Analytics and data platform
+
+- Concepts: OLTP vs OLAP; ETL/ELT; CDC/outbox; warehouse isolation.
+- Build: Stream order events to ClickHouse/DuckDB; create BI queries/dashboards (sales/day, conversion by category).
+- Deliverables: Data models; freshness SLA; lineage doc.
+- Acceptance: Analytics queries do not impact OLTP latency; dashboard renders in <3s.
+- Stretch: AB testing framework skeleton.
+
+### Week 16 — DR planning and final hardening
+
+- Concepts: Multi-AZ/region strategies; RTO vs RPO trade-offs; backups/restore drills.
+- Build: Backup/restore scripts; simulate region failover (two clusters or namespaces) via global ingress toggle.
+- Deliverables: DR runbook; RTO/RPO targets and evidence.
+- Acceptance: Recovery drill meets goals (e.g., RTO 10m, RPO 5m) in local simulation.
+- Stretch: Active-active simulation with write fencing.
+
+## Milestones and acceptance criteria (summary)
+
+1. Foundations (Wk1–3): Services boot, auth works, catalog/search functional
+2. Transactional core (Wk5–7): Carts, inventory lock correctness, order/payment Saga
+3. Operability (Wk8–10): Observability, reliability, performance targets met
+4. Scale/readiness (Wk11–13): Sharding plan, security hardening, Kubernetes deploys
+5. Data/DR (Wk14–16): Batch/Workflows, Analytics pipeline, DR drill
+
+Each milestone should include:
+
+- Demo script and screencast
+- Design doc delta (what changed and why)
+- Test evidence (unit/integration/load)
+- Operational docs (dashboards, alerts, runbooks)
+
+## Events and topics (suggested Kafka/RabbitMQ topology)
+
+- catalog.product-updated
+- order.order-created
+- order.order-paid
+- order.order-cancelled
+- inventory.stock-reserved
+- inventory.stock-released
+- payment.authorized
+- payment.failed
+- notification.email-requested
+
+Design all consumers as idempotent; store a processed message ID and use outbox pattern for producers.
+
+## Reliability patterns to implement
+
+- Timeouts + retries with exponential backoff + jitter
+- Circuit breakers at gateway and critical clients
+- Bulkheads: isolated threadpools/connection pools per downstream
+- Rate limiting (token bucket) at edge and service-level
+- Dead letter queues and replay tooling
+
+## Security checklist (from transcript themes)
+
+- TLS everywhere (dev: mkcert); mTLS internal if mesh-less
+- JWT with expiration, rotation (JWKS), minimal claims
+- Input validation and output encoding; CSRF for non-API forms if any
+- Least privilege for DB and message broker users
+- Never store raw card data; use tokenization via fake gateway
+- Secrets via env + sealed secrets (Kubernetes)
+- Logging: redact PII and secrets; audit logs for auth and payments
+
+## Observability checklist
+
+- Metrics: RED (Rate, Errors, Duration) per endpoint; business KPIs (orders/min)
+- Logs: structured JSON; correlation IDs propagated via headers (traceparent)
+- Tracing: 100% traces in dev; sampling in prod-like
+- Alerts: SLO-based with burn rates; on-call runbooks linked
+
+## Performance targets (right-sized for dev)
+
+- Browse/search/cart p95 < 200ms at 50–100 RPS locally
+- Checkout p95 < 400ms without external payment latency; graceful degradation under injected slowness
+- Index freshness < 5s; inventory lock hold time < 2s under contention
+
+## DR targets (dev simulation)
+
+- RTO: 10 minutes (restore and switch traffic)
+- RPO: 5 minutes (replication/checkpoint frequency)
+
+Use these to reason about costs/complexity if you later move to cloud multi-region.
+
+## Assessment rubrics
+
+- Design clarity: clear boundaries, contracts, and ownership
+- Correctness under concurrency: tests for inventory and saga compensations
+- Operability: dashboards, alerts, runbooks exist and are actionable
+- Security posture: threat model complete; secrets handled; logs clean of sensitive data
+- Resilience: chaos tests show graceful degradation
+- Performance: targets met with evidence
+
+## Stretch directions (post-capstone)
+
+- Marketplace: third-party sellers, payouts, moderation
+- Internationalization: multi-currency, tax rules, locales
+- ML: recommendations, ranking, fraud scoring
+- Cost management: autoscaling, right-sizing, storage lifecycle
+
+## Suggested study references mapped to the transcript
+
+- Availability targets and multi-region failover: “Let’s talk about those nines” and GLB/Anycast sections
+- Microservices, API Gateway, rate limiting: request flow and edge sections
+- Event-driven architecture and queues: order-placed event and decoupling rationale
+- Data stores by workload: NoSQL for catalog; strong consistency RDBMS for orders/payments
+- Inventory correctness: distributed locks with Redis SET NX + TTL
+- Transactional integrity: Sagas vs 2PC; compensating actions
+- Search: dedicated Elasticsearch and near-real-time indexing
+- Sharding/replicas: keys and hot shard pitfalls; replicas for read scaling
+- Security: JWT stateless auth; TLS; PCI scope minimization
+- Observability: metrics, logs, tracing pillars; BI isolation
+- DR/Backup: RTO/RPO trade-offs and drills
+
+Use these anchors as “why” behind every build decision you take.
+
+## Getting started next
+
+- Decide your primary language (Node/Go/Java/Python)
+- Clone this repo and create a `/services` folder with skeletons for: gateway, user, catalog, search, cart, inventory, order, payment, notification
+- Add `/infra/docker-compose.yml` with Postgres, Mongo, Redis, Kafka/RabbitMQ, MinIO, Elasticsearch, Prometheus, Grafana, Loki, Jaeger
+- Begin Week 1 tasks; keep notes in `/docs/` and wire dashboards early so you see progress
+
+If you want, ask me to scaffold the initial folders and Compose stack and we’ll start implementing Week 1 right away.
