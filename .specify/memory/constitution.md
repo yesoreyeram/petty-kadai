@@ -1,50 +1,76 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!-- Sync Impact Report:
+Version change: N/A → 1.0.0
+Modified principles: (new document — all principles introduced)
+Added sections: Enterprise Constraints; Development Workflow & Quality Gates
+Removed sections: None
+Templates requiring updates: .specify/templates/plan-template.md ✅; .specify/templates/spec-template.md ✅; .specify/templates/tasks-template.md ✅
+Follow-up TODOs: None
+-->
+
+# Petty Kadai Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### Principle I — Focused Weekly Increment (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- Each curriculum week MUST introduce exactly one new capability (tool, service, or concept) end to end.
+- Every increment MUST culminate in a runnable artifact (`go run`, `docker compose up`, or documented equivalent) and a demo checklist.
+- Dependencies outside the current week MUST be simulated or deferred; no premature multi-tool coupling.
+  Rationale: Narrow weekly scope preserves learner focus and keeps the system in a consistently demoable state.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### Principle II — Test-Driven Runnable Delivery
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+- Teams MUST author failing automated tests before implementing features (unit, integration, or contract as appropriate).
+- CI MUST stay green; merges blocked unless tests cover the new capability and pass locally.
+- Every artifact MUST document its run command and expected outcomes in-line with tests.
+  Rationale: TDD plus runnable guidance guarantees repeatable learning outcomes and reliable services.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### Principle III — Documentation Mirrors Implementation
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+- Whenever code changes, associated docs (`docs/weeks/`, `docs/system-design-curriculum.md`, runbooks) MUST be updated in the same change set.
+- Acceptance criteria and BDD notes MUST live alongside weekly READMEs; drift is unacceptable.
+- Architecture decisions MUST be logged, referencing the impacted requirement IDs.
+  Rationale: Learners rely on the documentation as the single source of truth; divergence erodes trust.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### Principle IV — Standard Interfaces & Observability by Default
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- Go services MUST expose HTTP handlers via `net/http`, include `GET /health`, and emit structured logs.
+- Observability hooks (request IDs, basic metrics placeholders, trace propagation) MUST be scaffolded as part of the first implementation pass.
+- External interfaces (APIs, events) MUST declare contracts (OpenAPI, JSON schema, or protobuf) before implementation.
+  Rationale: Shared primitives make multi-service evolution coherent and instrumentable.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### Principle V — Enterprise Guardrail Alignment
+
+- Feature work MUST cross-check the enterprise functional, non-functional, and security requirements before acceptance.
+- Any gaps against those requirements MUST be logged with remediation tasks and owners before merge.
+- Infrastructure and data decisions MUST respect the documented compliance and resilience baselines.
+  Rationale: The curriculum must model real enterprise expectations, not simplified prototypes.
+
+## Enterprise Constraints
+
+- Reference `docs/requirements/functional-enterprise.md`, `docs/requirements/non-functional-enterprise.md`, and `docs/requirements/security-enterprise.md` for canonical requirements.
+- Performance targets: adhere to defined SLOs (e.g., `/health` <50 ms p95 in Week 1, `/checkout` ≤400 ms p95 when introduced).
+- Compliance posture: PCI scope minimisation, GDPR/CCPA controls, SOC 2-aligned change management.
+- Data governance: ULID identifiers, versioned schemas, audit logging, and retention rules as per requirement docs.
+- Tooling: Prefer Docker Compose early, graduate to Kubernetes once observability and resilience scaffolding meet enterprise baselines.
+
+## Development Workflow & Quality Gates
+
+- Speckit artifacts (plan, spec, tasks) MUST include a Constitution Check section confirming alignment with all principles.
+- Week kick-off requires: constitution-aligned plan approval, dependency mock strategy, and test strategy sign-off.
+- Pull requests MUST show: tests added/updated, documentation updates, requirement IDs referenced, and observability touchpoints.
+- Releases or demos MUST verify enterprise guardrail checklists and capture results in weekly README retro sections.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- The constitution supersedes conflicting process guidance. Exceptions require architecture board approval and documented expiry.
+- Amendments:
+  - Proposals documented via PR referencing rationale and impact.
+  - Semantic versioning: MAJOR for breaking/removing principles, MINOR for new principles or sections, PATCH for clarifications.
+  - Approval requires at least one architecture lead, one curriculum owner, and one security representative.
+- Compliance:
+  - Quarterly audits ensure artifacts and implementations adhere to principles and enterprise constraints.
+  - Violations trigger remediation tasks tracked to completion before subsequent weekly releases.
+- Runtime guidance (README, docs) MUST be updated in the same change set whenever governance changes affect learners.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-10-26 | **Last Amended**: 2025-10-26
