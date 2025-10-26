@@ -200,6 +200,42 @@ Key patterns from the transcript you’ll implement:
 - Acceptance: Recovery drill meets goals (e.g., RTO 10m, RPO 5m) in local simulation.
 - Stretch: Active-active simulation with write fencing.
 
+## TDD and weekly runnable outcomes
+
+We practice test-driven development throughout. For every change:
+
+- Write a failing unit/integration test first that captures the behavior.
+- Implement the minimal code to pass the test.
+- Refactor with tests green; commit tests and code together.
+
+At the end of each week, the stack must start and be demoable with a repeatable script. Below is the explicit runnable state and tests per week.
+
+Weeks 1–16 (core program):
+
+- Week 1 Runnable: `docker compose up` starts infra and skeleton services; `/health` endpoints green. Tests: service health checks; compose smoke test.
+- Week 2 Runnable: Gateway enforces JWT and rate limits; login flow works. Tests: auth unit tests (JWT issuance/validation), gateway integration tests for 401/429.
+- Week 3 Runnable: Catalog CRUD and image upload via MinIO and cached fetch via Nginx. Tests: catalog model validation; upload/download integration; CDN cache hit behavior.
+- Week 4 Runnable: Search service indexes `product-updated` and serves queries. Tests: indexing pipeline end-to-end; freshness SLI check (<5s) with polling test.
+- Week 5 Runnable: Cart API supports idempotent add/remove with consistent totals. Tests: race tests for concurrent updates; idempotency key behavior.
+- Week 6 Runnable: Inventory reserve endpoint with Redis lock guarantees ≤1 success on last item. Tests: contention test (10 buyers/1 item); lock TTL and retry backoff.
+- Week 7 Runnable: Order + Payment Saga executes; compensation works on failure. Tests: state machine transitions; outbox emission; refund/cancel compensation paths.
+- Week 8 Runnable: Traces span gateway→services; metrics/logs visible in Grafana/Loki; alerts configured. Tests: tracing propagation test; metrics presence; alerting rule unit tests.
+- Week 9 Runnable: Resiliency patterns enabled (timeouts, retries, circuit breaker); system degrades gracefully under injected faults. Tests: fault injection scenarios with assertions on fallbacks and error budgets.
+- Week 10 Runnable: Performance scripts run; p95 meets targets at local RPS. Tests: automated perf check with thresholds; connection pool sizing sanity tests.
+- Week 11 Runnable: Read routing to replica simulated; partitioning logic exercised. Tests: replica reads vs primary writes; shard key routing tests.
+- Week 12 Runnable: mTLS (dev), input validation, secret management; logs redacted. Tests: security unit tests (validators), e2e TLS handshake, redaction checks.
+- Week 13 Runnable: Kubernetes manifests deploy services; HPA scales under load; zero-downtime rollout. Tests: readiness/liveness probes; rollout integration test.
+- Week 14 Runnable: Batch jobs run on schedule and ad-hoc; re-runnable idempotently. Tests: job idempotency; retry/backoff semantics.
+- Week 15 Runnable: Analytics queries on ClickHouse/DuckDB populated from events; dashboards render. Tests: data freshness and correctness (sample aggregates).
+- Week 16 Runnable: Backup/restore + failover drill completes within RTO/RPO. Tests: scripted restore and traffic switch; validation of data integrity post-restore.
+
+Extension weeks (17–20) — optional but recommended:
+
+- Week 17 Runnable: Message broker mediates events; consumers process reliably; DLQ configured. Tests: publish/consume with outage and replay; idempotent consumer tests.
+- Week 18 Runnable: Payment Adapter service integrated with timeouts/retries. Tests: client timeout and retry behavior; emitted events on success/failure.
+- Week 19 Runnable: Prometheus scrapes `/metrics`; starter dashboards available. Tests: metric emission assertions; scrape config sanity.
+- Week 20 Runnable: Jaeger shows complete checkout traces across services. Tests: trace span/attribute assertions; error span events when faults occur.
+
 ## Milestones and acceptance criteria (summary)
 
 1. Foundations (Wk1–3): Services boot, auth works, catalog/search functional
